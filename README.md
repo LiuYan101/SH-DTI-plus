@@ -102,7 +102,7 @@ python test.py \
 
 Alternatively, replace `--dwi`, `--bvals` and `--bvecs` with `--sh data/MGH_1001/sh.nii.gz`. Precomputed SH maps must already follow the normalization and basis conventions of the model.
 
-The input is automatically divided into overlapping `64 × 64` axial patches. Boundary patches are shifted inward, without padding; each slice must be at least `64 × 64`. Predictions are blended into the original volume size. Outputs are `tensor.nii.gz`, `md.nii.gz` and `fa.nii.gz`, with the input spatial coordinates preserved. Tensor and MD units are mm²/s; FA is dimensionless. `--batch-size` and `--stride` control inference execution.
+The input is automatically divided into overlapping `64 × 64` axial patches. Boundary patches are shifted inward, without padding; each slice must be at least `64 × 64`. Predictions are blended into the original volume size. Outputs are `tensor.nii.gz`, `md.nii.gz`, `fa.nii.gz`, `ad.nii.gz` and `rd.nii.gz`, with the input spatial coordinates preserved. Tensor, MD, AD and RD units are mm²/s; FA is dimensionless. AD is the largest tensor eigenvalue, and RD is the mean of the other two eigenvalues. `--batch-size` and `--stride` control inference execution.
 
 ## Included cohorts and gradients
 

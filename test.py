@@ -19,7 +19,10 @@ def tensor_metrics(tensor):
     values=np.linalg.eigvalsh(matrix)
     md=values.mean(-1)
     fa=np.sqrt(1.5*np.sum((values-md[...,None])**2,axis=-1)/np.maximum(np.sum(values**2,axis=-1),1e-20))
-    return md,fa
+    # eigvalsh returns ascending eigenvalues.
+    ad=values[...,-1]
+    rd=values[...,:2].mean(-1)
+    return md,fa,ad,rd
 
 
 def main():
@@ -86,9 +89,9 @@ def main():
     tensor=prediction/weights[...,None]
     tensor/=np.array([1000,1000,1000,10000,10000,10000])
     tensor*=mask[...,None]
-    md,fa=tensor_metrics(tensor)
+    md,fa,ad,rd=tensor_metrics(tensor)
     a.output.mkdir(parents=True,exist_ok=True)
-    for name,array in [('tensor',tensor),('md',md),('fa',fa)]:
+    for name,array in [('tensor',tensor),('md',md),('fa',fa),('ad',ad),('rd',rd)]:
         save_image(array,a.output/f'{name}.nii.gz',reference)
 
 
