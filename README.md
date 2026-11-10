@@ -1,6 +1,6 @@
 # SH-DTI++
 
-SH-DTI++ estimates diffusion tensors from second-order spherical harmonic (SH) coefficients using a conditional denoising diffusion model with squeeze-and-excitation (SE) modules.
+SH-DTI++ estimates diffusion tensors from second-order spherical harmonic (SH) coefficients using a conditional denoising diffusion model.
 
 This repository contains tensor-to-DW simulation, SH preprocessing with optional b-value normalization, paired training-data generation, SH-DTI++ training and full-volume inference. It includes the original 6-, 9-, 15- and 22-direction gradient tables and the MGH-HCP/CHCP subject lists.
 
