@@ -1,6 +1,6 @@
 # SH-DTI++
 
-SH-DTI++ estimates diffusion tensors from second-order spherical harmonic (SH) coefficients using a conditional denoising diffusion model with squeeze-and-excitation (SE) modules.
+SH-DTI++ estimates diffusion tensors from second-order spherical harmonic (SH) coefficients using a conditional denoising diffusion model.
 
 This repository contains tensor-to-DW simulation, SH preprocessing with optional b-value normalization, paired training-data generation, SH-DTI++ training and full-volume inference. It includes the original 6-, 9-, 15- and 22-direction gradient tables and the MGH-HCP/CHCP subject lists.
 
@@ -17,7 +17,6 @@ pip install -r requirements.txt
 All NIfTI arrays use `X × Y × Z × channels`. Tensor channels are ordered as
 `[Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]` in **mm²/s**. Tensor, S0, DW image and brain mask must already be on the same voxel grid. The code does not register or resample images.
 
-Tensor targets are stored in physical units. The training loader scales the three diagonal channels by 1000 and the off-diagonal channels by 10000. Inference reverses this scaling.
 
 ## 1. Simulate DW images from a GT tensor
 
@@ -42,7 +41,7 @@ The DW signal is divided by the first b0 and clipped to `[0,1]`. By default, sin
 
 `r_ref = clip(S(b)/S0, 0, 1) ** (b_ref/b)`.
 
-This follows the exponential attenuation model. It is applied to the normalized signal before SH conversion. The standard 1000-shell training protocol is unchanged by this step. The implementation expects one nonzero shell and at least six independent directions.
+This follows the exponential attenuation model. It is applied to the normalized signal before SH conversion. The implementation expects one nonzero shell and at least six independent directions.
 
 ```bash
 python prepare_sh.py \
@@ -52,13 +51,11 @@ python prepare_sh.py \
   --reference-b 1000 --output data/MGH_1001/sh.nii.gz
 ```
 
-For acquisition b-values other than 1000, provide the corresponding b-value file. Use `--no-b-normalization` to retain the acquired b-value. Do not apply the normalization again to an already normalized signal.
+For acquisition b-values other than 1000, provide the corresponding b-value file. Use `--no-b-normalization` to retain the acquired b-value. 
 
 ## 3. Generate paired training data
 
 List the training cases in `examples/train_cases.json`, with the tensor, mask and either S0 or noise-free DW image paths. Paths are relative to the manifest.
-
-Input volumes may have different spatial dimensions, with each slice at least `64 × 64`. The code automatically extracts overlapping `64 × 64` axial patches. At the image boundary, the last patch is shifted inward to remain entirely within the image. No padding is used.
 
 ```bash
 python prepare_training_data.py \
@@ -76,8 +73,6 @@ python train.py --data data/train_patches \
   --config configs/sh_dti_plus.yaml --output checkpoints/sh_dti_plus
 ```
 
-The configuration preserves the main model settings: 12 input channels (six SH coefficients and six noisy tensor components), six output noise channels, base width 128, 1000 diffusion steps, batch size 4, Adam learning rate `2e-5`, EMA rate 0.999, and 1,200,000 training steps. Four SE blocks operate on channel groups of sizes 1, 5, 3 and 3. The loss is the per-sample summed squared noise error, averaged over the batch. SH coefficients and scaled tensors receive no additional `[-1,1]` intensity transform.
-
 Resume a trusted local checkpoint with:
 
 ```bash
@@ -85,7 +80,7 @@ python train.py --data data/train_patches \
   --output checkpoints/sh_dti_plus --resume checkpoints/sh_dti_plus/ckpt.pth
 ```
 
-Checkpoints retain the original `[model, optimizer, epoch, step, EMA]` structure and parameter names. The SE forward path is active independently of any SH scaling setting.
+Checkpoints retain the original `[model, optimizer, epoch, step, EMA]` structure and parameter names. 
 
 ## 5. Test a complete case
 
@@ -102,7 +97,7 @@ python test.py \
 
 Alternatively, replace `--dwi`, `--bvals` and `--bvecs` with `--sh data/MGH_1001/sh.nii.gz`. Precomputed SH maps must already follow the normalization and basis conventions of the model.
 
-The input is automatically divided into overlapping `64 × 64` axial patches. Boundary patches are shifted inward, without padding; each slice must be at least `64 × 64`. Predictions are blended into the original volume size. Outputs are `tensor.nii.gz`, `md.nii.gz`, `fa.nii.gz`, `ad.nii.gz` and `rd.nii.gz`, with the input spatial coordinates preserved. Tensor, MD, AD and RD units are mm²/s; FA is dimensionless. AD is the largest tensor eigenvalue, and RD is the mean of the other two eigenvalues. `--batch-size` and `--stride` control inference execution.
+Outputs are `tensor.nii.gz`, `md.nii.gz`, `fa.nii.gz`, `ad.nii.gz` and `rd.nii.gz`, with the input spatial coordinates preserved. Tensor, MD, AD and RD units are mm²/s; FA is dimensionless. AD is the largest tensor eigenvalue, and RD is the mean of the other two eigenvalues. `--batch-size` and `--stride` control inference execution.
 
 ## Included cohorts and gradients
 
