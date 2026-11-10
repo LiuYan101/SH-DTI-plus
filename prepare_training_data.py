@@ -7,6 +7,7 @@ import numpy as np
 from sh_dti_plus.io import load_image, check_geometry, load_gradients
 from sh_dti_plus.sh import sh_inverse, fit_sh
 from sh_dti_plus.simulation import simulate_dw, rician_noise
+from sh_dti_plus.patches import pad_xy, patch_starts
 
 
 def main():
@@ -60,13 +61,13 @@ def main():
         else:
             x0=y0=z0=0
         h,w,depth=mask.shape
-        if min(h,w)<64 or dwi.shape != mask.shape+(bvals.size,):
-            raise ValueError('Expected at least 64x64 spatial input and one image per b-value.')
-        def starts(size):
-            return sorted(set(list(range(0,size-63,a.stride))+[size-64]))
-        locations=[(x,y) for x in starts(h) for y in starts(w)]
+        if min(h,w,depth)<1 or dwi.shape != mask.shape+(bvals.size,):
+            raise ValueError('Expected nonempty spatial dimensions and one image per b-value.')
+        dwi,tensor,mask=pad_xy(dwi),pad_xy(tensor),pad_xy(mask)
+        hp,wp=mask.shape[:2]
+        locations=[(x,y) for x in patch_starts(hp,a.stride) for y in patch_starts(wp,a.stride)]
         for z in range(depth):
-            # For the 128x128 crop, assign the nine noise levels once per slice.
+            # Assign configured noise levels to the patches of each slice.
             levels=np.asarray(a.noise_levels)[np.random.choice(len(a.noise_levels),len(locations),replace=len(locations)!=len(a.noise_levels))]
             for (x,y),sigma in zip(locations,levels):
                 sl=(slice(x,x+64),slice(y,y+64),z)

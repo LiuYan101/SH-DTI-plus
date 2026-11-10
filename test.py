@@ -7,6 +7,7 @@ from sh_dti_plus.io import load_image,save_image,check_geometry,load_config
 from sh_dti_plus.model import SHDTIPlus
 from sh_dti_plus.sh import sh_inverse,fit_sh
 from sh_dti_plus.diffusion import beta_schedule,load_weights,sample
+from sh_dti_plus.patches import pad_xy,patch_starts
 
 
 def tensor_metrics(tensor):
@@ -69,12 +70,9 @@ def main():
     model.eval()
     betas=beta_schedule(c,a.device)
     h,w,depth=mask.shape
-    pad=((0,max(0,64-h)),(0,max(0,64-w)),(0,0),(0,0))
-    sh=np.pad(sh,pad)
+    sh=pad_xy(sh)
     hp,wp=sh.shape[:2]
-    def starts(size):
-        return sorted(set(list(range(0,size-63,a.stride))+[size-64]))
-    locations=[(z,x,y) for z in range(depth) for x in starts(hp) for y in starts(wp)]
+    locations=[(z,x,y) for z in range(depth) for x in patch_starts(hp,a.stride) for y in patch_starts(wp,a.stride)]
     prediction=np.zeros((hp,wp,depth,6),dtype=np.float64)
     weights=np.zeros((hp,wp,depth),dtype=np.float64)
     window=np.maximum(np.outer(np.hanning(64),np.hanning(64)),1e-3)

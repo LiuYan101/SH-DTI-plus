@@ -1,6 +1,6 @@
 # SH-DTI++
 
-SH-DTI++ estimates diffusion tensors from second-order spherical harmonic (SH) coefficients using a conditional denoising diffusion model.
+SH-DTI++ estimates diffusion tensors from second-order spherical harmonic (SH) coefficients using a conditional denoising diffusion model with squeeze-and-excitation (SE) modules.
 
 This repository contains tensor-to-DW simulation, SH preprocessing with optional b-value normalization, paired training-data generation, SH-DTI++ training and full-volume inference. It includes the original 6-, 9-, 15- and 22-direction gradient tables and the MGH-HCP/CHCP subject lists.
 
@@ -56,17 +56,18 @@ For acquisition b-values other than 1000, provide the corresponding b-value file
 
 ## 3. Generate paired training data
 
-Edit `examples/train_cases.json` to list the selected training subjects. Paths are resolved relative to the manifest. Each record contains `id`, `tensor`, `mask`, and either `s0` or `dwi` (a noise-free DW image matching the supplied gradient table). The one-subject example is a format example, not a study split.
+List the training cases in `examples/train_cases.json`, with the tensor, mask and either S0 or noise-free DW image paths. Paths are relative to the manifest.
+
+Input volumes may have different spatial dimensions. The code automatically extracts overlapping `64 × 64` axial patches, covers the image boundaries and zero-pads inputs smaller than a patch. No fixed volume size or manual crop is required.
 
 ```bash
 python prepare_training_data.py \
   --cases examples/train_cases.json \
   --bvals gradients/bval_15.txt --bvecs gradients/bvec_15.txt \
-  --crop 7 135 4 132 30 60 \
   --output data/train_patches
 ```
 
-The archived preprocessing used a `128 × 128 × 30` crop, `64 × 64` axial patches and stride 32, giving 270 patches per subject. For each slice, the nine patches receive a permutation of Rician noise levels `0.005, 0.010, …, 0.045`. Outputs are paired `sh_coe/sph_*.nii.gz` and `gt_tensor/tensor_*.nii.gz`, plus a patch index. Patch affines are local identity matrices and are not used as anatomical coordinates. Omit `--crop` to use an already cropped volume. Select subjects before generating patches; do not split overlapping patches across training and test data.
+The script adds Rician noise using the configured noise levels and saves paired SH/tensor patches in `sh_coe/` and `gt_tensor/`. Patch overlap can be adjusted with `--stride`. Keep subjects separate between training and testing.
 
 ## 4. Train SH-DTI++
 
@@ -88,7 +89,7 @@ Checkpoints retain the original `[model, optimizer, epoch, step, EMA]` structure
 
 ## 5. Test a complete case
 
-Inference can start from DW images or precomputed SH coefficients:
+Inference accepts full volumes of different spatial sizes, starting from DW images or precomputed SH coefficients:
 
 ```bash
 python test.py \
@@ -101,7 +102,7 @@ python test.py \
 
 Alternatively, replace `--dwi`, `--bvals` and `--bvecs` with `--sh data/MGH_1001/sh.nii.gz`. Precomputed SH maps must already follow the normalization and basis conventions of the model.
 
-Testing uses the EMA weights and all 1000 DDPM steps. Overlapping axial patches are combined with a Hann window. Outputs are `tensor.nii.gz`, `md.nii.gz` and `fa.nii.gz`, in the input voxel grid. Tensor and MD units are mm²/s; FA is dimensionless. No positive-definiteness correction or tensor-component clipping is added. `--batch-size`, `--stride`, `--device` and `--seed` control inference execution.
+The input is automatically divided into overlapping `64 × 64` axial patches, with padding where needed. Predictions are blended and padding is removed to restore the original volume size. Outputs are `tensor.nii.gz`, `md.nii.gz` and `fa.nii.gz`, with the input spatial coordinates preserved. Tensor and MD units are mm²/s; FA is dimensionless. `--batch-size` and `--stride` control inference execution.
 
 ## Included cohorts and gradients
 
