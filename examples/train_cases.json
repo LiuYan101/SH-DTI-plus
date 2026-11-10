@@ -1,0 +1,8 @@
+[
+  {
+    "id": "MGH_1001",
+    "tensor": "../data/MGH_1001/tensor.nii.gz",
+    "s0": "../data/MGH_1001/s0.nii.gz",
+    "mask": "../data/MGH_1001/mask.nii.gz"
+  }
+]

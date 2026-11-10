@@ -1,0 +1,7 @@
+The denoising network architecture and diffusion implementation are adapted
+from the original project code, which includes components from Fast-DDPM
+(mirth AI lab at UF) and the DDPM/DDIM implementation lineage.
+The upstream MIT license is preserved in LICENSE.
+
+This repository contains SH-DTI++ preprocessing, training and inference only.
+The published model's tensor channel order is Dxx, Dyy, Dzz, Dxy, Dxz, Dyz.

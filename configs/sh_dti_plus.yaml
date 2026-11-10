@@ -1,0 +1,33 @@
+data:
+  image_size: 64
+  num_workers: 8
+
+model:
+  use_se: true
+  in_channels: 12
+  out_ch: 6
+  ch: 128
+  ch_mult: [1, 1, 2, 2, 4, 4]
+  num_res_blocks: 2
+  attn_resolutions: [16]
+  dropout: 0.0
+  resamp_with_conv: true
+  ema_rate: 0.999
+
+diffusion:
+  beta_start: 0.0001
+  beta_end: 0.02
+  num_diffusion_timesteps: 1000
+
+training:
+  batch_size: 4
+  n_epochs: 10000
+  n_iters: 1200000
+  snapshot_freq: 50000
+
+optim:
+  lr: 0.00002
+  beta1: 0.9
+  weight_decay: 0.0
+  amsgrad: false
+  eps: 0.00000001
