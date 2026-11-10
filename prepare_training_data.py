@@ -7,7 +7,7 @@ import numpy as np
 from sh_dti_plus.io import load_image, check_geometry, load_gradients
 from sh_dti_plus.sh import sh_inverse, fit_sh
 from sh_dti_plus.simulation import simulate_dw, rician_noise
-from sh_dti_plus.patches import pad_xy, patch_starts
+from sh_dti_plus.patches import patch_starts
 
 
 def main():
@@ -63,9 +63,7 @@ def main():
         h,w,depth=mask.shape
         if min(h,w,depth)<1 or dwi.shape != mask.shape+(bvals.size,):
             raise ValueError('Expected nonempty spatial dimensions and one image per b-value.')
-        dwi,tensor,mask=pad_xy(dwi),pad_xy(tensor),pad_xy(mask)
-        hp,wp=mask.shape[:2]
-        locations=[(x,y) for x in patch_starts(hp,a.stride) for y in patch_starts(wp,a.stride)]
+        locations=[(x,y) for x in patch_starts(h,a.stride) for y in patch_starts(w,a.stride)]
         for z in range(depth):
             # Assign configured noise levels to the patches of each slice.
             levels=np.asarray(a.noise_levels)[np.random.choice(len(a.noise_levels),len(locations),replace=len(locations)!=len(a.noise_levels))]

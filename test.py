@@ -7,7 +7,7 @@ from sh_dti_plus.io import load_image,save_image,check_geometry,load_config
 from sh_dti_plus.model import SHDTIPlus
 from sh_dti_plus.sh import sh_inverse,fit_sh
 from sh_dti_plus.diffusion import beta_schedule,load_weights,sample
-from sh_dti_plus.patches import pad_xy,patch_starts
+from sh_dti_plus.patches import patch_starts
 
 
 def tensor_metrics(tensor):
@@ -48,6 +48,8 @@ def main():
     check_geometry(reference,mask_image)
     if mask.ndim!=3 or not np.any(mask>0):
         raise ValueError('Expected a nonempty 3-D brain mask.')
+    h,w,depth=mask.shape
+    locations=[(z,x,y) for z in range(depth) for x in patch_starts(h,a.stride) for y in patch_starts(w,a.stride)]
     mask=mask>0
     if a.dwi:
         if not a.bvals or not a.bvecs:p.error('--dwi requires --bvals and --bvecs.')
@@ -69,12 +71,8 @@ def main():
     load_weights(model,a.checkpoint,a.device,not a.no_ema)
     model.eval()
     betas=beta_schedule(c,a.device)
-    h,w,depth=mask.shape
-    sh=pad_xy(sh)
-    hp,wp=sh.shape[:2]
-    locations=[(z,x,y) for z in range(depth) for x in patch_starts(hp,a.stride) for y in patch_starts(wp,a.stride)]
-    prediction=np.zeros((hp,wp,depth,6),dtype=np.float64)
-    weights=np.zeros((hp,wp,depth),dtype=np.float64)
+    prediction=np.zeros((h,w,depth,6),dtype=np.float64)
+    weights=np.zeros((h,w,depth),dtype=np.float64)
     window=np.maximum(np.outer(np.hanning(64),np.hanning(64)),1e-3)
     for start in range(0,len(locations),a.batch_size):
         batch=locations[start:start+a.batch_size]
@@ -85,7 +83,7 @@ def main():
             prediction[x:x+64,y:y+64,z]+=patch*window[...,None]
             weights[x:x+64,y:y+64,z]+=window
         print(f'SH-DTI++ patches {min(start+a.batch_size,len(locations))}/{len(locations)}',flush=True)
-    tensor=(prediction/weights[...,None])[:h,:w]
+    tensor=prediction/weights[...,None]
     tensor/=np.array([1000,1000,1000,10000,10000,10000])
     tensor*=mask[...,None]
     md,fa=tensor_metrics(tensor)

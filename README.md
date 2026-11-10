@@ -58,7 +58,7 @@ For acquisition b-values other than 1000, provide the corresponding b-value file
 
 List the training cases in `examples/train_cases.json`, with the tensor, mask and either S0 or noise-free DW image paths. Paths are relative to the manifest.
 
-Input volumes may have different spatial dimensions. The code automatically extracts overlapping `64 × 64` axial patches, covers the image boundaries and zero-pads inputs smaller than a patch. No fixed volume size or manual crop is required.
+Input volumes may have different spatial dimensions, with each slice at least `64 × 64`. The code automatically extracts overlapping `64 × 64` axial patches. At the image boundary, the last patch is shifted inward to remain entirely within the image. No padding is used.
 
 ```bash
 python prepare_training_data.py \
@@ -102,7 +102,7 @@ python test.py \
 
 Alternatively, replace `--dwi`, `--bvals` and `--bvecs` with `--sh data/MGH_1001/sh.nii.gz`. Precomputed SH maps must already follow the normalization and basis conventions of the model.
 
-The input is automatically divided into overlapping `64 × 64` axial patches, with padding where needed. Predictions are blended and padding is removed to restore the original volume size. Outputs are `tensor.nii.gz`, `md.nii.gz` and `fa.nii.gz`, with the input spatial coordinates preserved. Tensor and MD units are mm²/s; FA is dimensionless. `--batch-size` and `--stride` control inference execution.
+The input is automatically divided into overlapping `64 × 64` axial patches. Boundary patches are shifted inward, without padding; each slice must be at least `64 × 64`. Predictions are blended into the original volume size. Outputs are `tensor.nii.gz`, `md.nii.gz` and `fa.nii.gz`, with the input spatial coordinates preserved. Tensor and MD units are mm²/s; FA is dimensionless. `--batch-size` and `--stride` control inference execution.
 
 ## Included cohorts and gradients
 
